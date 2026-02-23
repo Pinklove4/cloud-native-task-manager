@@ -1,0 +1,86 @@
+# Kustomization for production environment
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: task-manager-prod
+
+resources:
+  - ../../base
+
+# Name suffix for prod resources
+nameSuffix: -prod
+
+# Common labels for prod
+commonLabels:
+  environment: prod
+
+# Image customization for prod
+images:
+  - name: task-manager-api
+    newName: <REGISTRY_URL>/task-manager-api  # <CHANGE_ME>
+    newTag: latest  # Or use specific version tag
+
+# Patches for prod-specific configuration
+patches:
+  # Higher replicas for prod
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+    target:
+      kind: Deployment
+      name: task-manager
+  
+  # Higher resource requests/limits for prod
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+    target:
+      kind: Deployment
+      name: task-manager
+  
+  # Higher HPA limits for prod
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 20
+    target:
+      kind: HorizontalPodAutoscaler
+      name: task-manager
+  
+  # Update ingress host for prod
+  - patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: api.yourcompany.com
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: api.yourcompany.com
+    target:
+      kind: Ingress
+      name: task-manager
+
+# ConfigMap customization for prod
+configMapGenerator:
+  - name: task-manager-config
+    behavior: merge
+    literals:
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+
+# Note: Create prod secrets separately with proper security
+# Use external secret management in production:
+# - AWS Secrets Manager with External Secrets Operator
+# - HashiCorp Vault
+# - Azure Key Vault
+# - Sealed Secrets for GitOps

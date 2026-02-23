@@ -1,0 +1,78 @@
+# Network Policy for Task Manager API
+# Restricts traffic to only allowed sources
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: task-manager
+  namespace: task-manager
+  labels:
+    app: task-manager
+spec:
+  podSelector:
+    matchLabels:
+      app: task-manager
+  
+  policyTypes:
+    - Ingress
+    - Egress
+  
+  ingress:
+    # Allow traffic from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8000
+    
+    # Allow traffic from Prometheus for metrics scraping
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8000
+    
+    # Allow traffic from same namespace (for internal services)
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8000
+  
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    
+    # Allow connections to PostgreSQL (adjust based on your setup)
+    # For managed database (RDS/Azure DB), you may need to allow external IPs
+    - to:
+        - ipBlock:
+            cidr: 10.0.0.0/8  # Adjust to your VPC CIDR
+      ports:
+        - protocol: TCP
+          port: 5432
+    
+    # For external managed databases, allow all egress (less secure but practical)
+    # Uncomment if using managed database outside cluster:
+    # - to:
+    #     - ipBlock:
+    #         cidr: 0.0.0.0/0
+    #         except:
+    #           - 10.0.0.0/8
+    #           - 172.16.0.0/12
+    #           - 192.168.0.0/16
+    #   ports:
+    #     - protocol: TCP
+    #       port: 5432

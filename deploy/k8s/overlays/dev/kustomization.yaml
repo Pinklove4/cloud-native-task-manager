@@ -1,0 +1,73 @@
+# Kustomization for dev environment
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: task-manager-dev
+
+resources:
+  - ../../base
+
+# Name suffix for dev resources
+nameSuffix: -dev
+
+# Common labels for dev
+commonLabels:
+  environment: dev
+
+# Image customization for dev
+images:
+  - name: task-manager-api
+    newName: <REGISTRY_URL>/task-manager-api  # <CHANGE_ME>
+    newTag: dev
+
+# Patches for dev-specific configuration
+patches:
+  # Reduce replicas for dev
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: task-manager
+  
+  # Reduce resource requests/limits for dev
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+    target:
+      kind: Deployment
+      name: task-manager
+  
+  # Adjust HPA for dev (lower min/max)
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 3
+    target:
+      kind: HorizontalPodAutoscaler
+      name: task-manager
+
+# ConfigMap customization for dev
+configMapGenerator:
+  - name: task-manager-config
+    behavior: merge
+    literals:
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+
+# Note: Create dev secrets separately
+# kubectl create secret generic task-manager-secrets-dev \
+#   --namespace=task-manager-dev \
+#   --from-literal=DATABASE_URL='postgresql://...' \
+#   --from-literal=JWT_SECRET_KEY='dev-secret-key'

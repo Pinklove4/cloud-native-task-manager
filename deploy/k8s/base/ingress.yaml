@@ -1,0 +1,50 @@
+# Ingress for Task Manager API
+# NOTE: Configure your ingress controller and update the host
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: task-manager
+  namespace: task-manager
+  labels:
+    app: task-manager
+  annotations:
+    # NGINX Ingress Controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    
+    # Rate limiting (optional)
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    
+    # CORS (if needed)
+    # nginx.ingress.kubernetes.io/enable-cors: "true"
+    
+    # For AWS ALB Ingress Controller, use these instead:
+    # kubernetes.io/ingress.class: alb
+    # alb.ingress.kubernetes.io/scheme: internet-facing
+    # alb.ingress.kubernetes.io/target-type: ip
+    
+    # For cert-manager TLS certificate:
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx  # Change based on your ingress controller
+  
+  # TLS configuration
+  tls:
+    - hosts:
+        - api.example.com  # <CHANGE_ME> - Your domain
+      secretName: task-manager-tls
+  
+  rules:
+    - host: api.example.com  # <CHANGE_ME> - Your domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: task-manager
+                port:
+                  name: http

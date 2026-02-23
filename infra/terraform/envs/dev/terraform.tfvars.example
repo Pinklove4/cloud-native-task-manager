@@ -1,0 +1,16 @@
+# Example Terraform variables for dev environment
+# Copy this file to terraform.tfvars and fill in the values
+
+# Environment
+environment  = "dev"
+project_name = "task-manager"
+
+# AWS Configuration (uncomment if using AWS)
+# aws_region = "us-east-1"
+
+# Azure Configuration (uncomment if using Azure)
+# azure_subscription_id = "<YOUR_SUBSCRIPTION_ID>"
+# azure_location        = "eastus"
+
+# Database (REQUIRED - use a strong password)
+db_password = "<CHANGE_ME_STRONG_PASSWORD>"

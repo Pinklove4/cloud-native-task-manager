@@ -1,0 +1,18 @@
+# Example Terraform variables for production environment
+# Copy this file to terraform.tfvars and fill in the values
+# IMPORTANT: Never commit terraform.tfvars to version control
+
+# Environment
+environment  = "prod"
+project_name = "task-manager"
+
+# AWS Configuration (uncomment if using AWS)
+# aws_region = "us-east-1"
+
+# Azure Configuration (uncomment if using Azure)
+# azure_subscription_id = "<YOUR_SUBSCRIPTION_ID>"
+# azure_location        = "eastus"
+
+# Database (REQUIRED - use a strong password, min 16 chars with special chars)
+# Consider using AWS Secrets Manager or Azure Key Vault instead
+db_password = "<CHANGE_ME_VERY_STRONG_PASSWORD>"

@@ -1,0 +1,124 @@
+# Prometheus alerting rules for Task Manager API
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: task-manager-alerts
+  namespace: monitoring
+  labels:
+    app: task-manager
+    prometheus: main
+spec:
+  groups:
+    - name: task-manager.rules
+      rules:
+        # High Error Rate Alert
+        - alert: TaskManagerHighErrorRate
+          expr: |
+            (
+              sum(rate(http_requests_total{job="task-manager", status=~"5.."}[5m]))
+              /
+              sum(rate(http_requests_total{job="task-manager"}[5m]))
+            ) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "High error rate detected in Task Manager API"
+            description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+            runbook_url: "https://github.com/your-org/task-manager/docs/runbooks/incident-response.md"
+
+        # High Latency Alert
+        - alert: TaskManagerHighLatency
+          expr: |
+            histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="task-manager"}[5m])) by (le)) > 0.5
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "High latency detected in Task Manager API"
+            description: "P95 latency is {{ $value | humanizeDuration }} (threshold: 500ms)"
+            runbook_url: "https://github.com/your-org/task-manager/docs/runbooks/incident-response.md"
+
+        # Pod Not Ready Alert
+        - alert: TaskManagerPodNotReady
+          expr: |
+            kube_pod_status_ready{namespace="task-manager", condition="true"} == 0
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "Task Manager pod not ready"
+            description: "Pod {{ $labels.pod }} has been not ready for more than 5 minutes"
+
+        # Pod CrashLooping Alert
+        - alert: TaskManagerPodCrashLooping
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="task-manager"}[1h]) > 5
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Task Manager pod is crash looping"
+            description: "Pod {{ $labels.pod }} has restarted {{ $value }} times in the last hour"
+
+        # High Memory Usage Alert
+        - alert: TaskManagerHighMemoryUsage
+          expr: |
+            (
+              container_memory_working_set_bytes{namespace="task-manager", container="task-manager"}
+              /
+              container_spec_memory_limit_bytes{namespace="task-manager", container="task-manager"}
+            ) > 0.85
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "High memory usage in Task Manager pod"
+            description: "Memory usage is {{ $value | humanizePercentage }} (threshold: 85%)"
+
+        # High CPU Usage Alert
+        - alert: TaskManagerHighCPUUsage
+          expr: |
+            (
+              rate(container_cpu_usage_seconds_total{namespace="task-manager", container="task-manager"}[5m])
+              /
+              container_spec_cpu_quota{namespace="task-manager", container="task-manager"} * 100000
+            ) > 0.85
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "High CPU usage in Task Manager pod"
+            description: "CPU usage is {{ $value | humanizePercentage }} (threshold: 85%)"
+
+        # No Replicas Running
+        - alert: TaskManagerNoReplicasRunning
+          expr: |
+            kube_deployment_status_replicas_available{namespace="task-manager", deployment="task-manager"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "No Task Manager replicas running"
+            description: "All Task Manager pods are down"
+
+        # HPA at Max Replicas
+        - alert: TaskManagerHPAAtMax
+          expr: |
+            kube_horizontalpodautoscaler_status_current_replicas{namespace="task-manager"}
+            ==
+            kube_horizontalpodautoscaler_spec_max_replicas{namespace="task-manager"}
+          for: 15m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "Task Manager HPA at maximum replicas"
+            description: "HPA has been at max replicas for 15 minutes, consider increasing limits"
