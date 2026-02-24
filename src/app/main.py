@@ -81,6 +81,16 @@ def create_application() -> FastAPI:
     app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
     app.include_router(tasks.router, prefix="/tasks", tags=["Tasks"])
     
+    @app.get("/", tags=["Root"])
+    def root():
+        """Root endpoint - API information."""
+        return {
+            "name": settings.APP_NAME,
+            "version": "1.0.0",
+            "docs": "/docs",
+            "health": "/health",
+        }
+    
     return app
 
 

@@ -15,13 +15,13 @@ class Settings(BaseSettings):
     
     # Application
     APP_NAME: str = "task-manager-api"
-    DEBUG: bool = False
+    DEBUG: bool = True
     LOG_LEVEL: str = "INFO"
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     
-    # Database
-    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/taskmanager"
+    # Database (SQLite for local dev, PostgreSQL for production)
+    DATABASE_URL: str = "sqlite:///./taskmanager.db"
     
     # JWT Authentication
     JWT_SECRET_KEY: str = "CHANGE_ME_TO_A_SECURE_RANDOM_STRING"
